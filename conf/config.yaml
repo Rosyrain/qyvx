@@ -1,0 +1,32 @@
+name: "qyvx"
+mode: "dev"
+port: 8888
+version: "v0.0.1"
+start_time: "2024-08-26"
+machine_id: 1
+
+auth:
+  jwt_expire: 8760
+
+log:
+  level: "debug"
+  filename: "qyvx.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7
+
+mysql:
+  host: freetier-01.cn-hangzhou.cluster.matrixonecloud.cn
+  port: 6001
+  user: 01918e17-faae-72bf-8fb8-acf95135efd8#admin#accountadmin
+  password: "Jx20031002"
+  dbname: "mo_qyvx"
+  max_open_conns: 200
+  max_idle_conns: 50
+
+#redis:
+#  host: nil_redis
+#  port: 6379
+#  password: ""
+#  db: 0
+#  pool_size: 100
