@@ -20,7 +20,7 @@
 ├── logic
 │   ├── errors.go				# 具体业务逻辑处理函数中的特殊error
 │   ├── qyvx.go					# 具体业务逻辑处理函数
-│   └── request.go			# api接口调用的统一书写文件
+│   └── request.go			# api接口调用的统一书写文件(密钥存放在此处)
 ├── models
 │   ├── create_tables.sql# 数据库中表结构设计sql语句
 │   ├── msgcontent.go		# 企业微信hook的信息结构体
