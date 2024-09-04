@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"qyvx/logic"
 	snowflake "qyvx/pkg/snowflask"
 	"syscall"
 	"time"
@@ -47,6 +48,11 @@ func main() {
 		fmt.Printf("init snowflask failed,err:%#v\n", err)
 	}
 
+	//加载密钥
+	if !logic.Init() {
+		fmt.Printf("init secret failed")
+		return
+	}
 	// 5. 注册路由
 	r := routes.SetupRouter(settings.Conf.Mode)
 

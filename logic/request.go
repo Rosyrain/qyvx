@@ -5,17 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
+	"os"
 	"qyvx/pkg/ihttp"
 	"sync"
 )
 
-const (
-	cropID            = "xxx" // qyvx的企业id
-	agentID           = "xxx" // 应用id
-	org               = "xxx" // github组织名
-	githubSecret      = "xxx" // github应用的secret
-	addressBookSecret = "xxx" //通讯录的secret
-	githubToken       = "xxx" // github可以操作组织的token
+var (
+	cropID            = "" // qyvx的企业id
+	agentID           = "" // 应用id
+	org               = "" // github组织名
+	githubSecret      = "" // github应用的secret
+	addressBookSecret = "" //通讯录的secret
+	githubToken       = "" // github可以操作组织的token
 )
 
 var (
@@ -24,6 +25,44 @@ var (
 	qyvxGithubAccessToken      = ""
 	qyvxAddressBookAccessToken = ""
 )
+
+func Init() bool {
+	cropID = os.Getenv("CROP_ID")
+	if cropID == "" {
+		zap.L().Warn("Warning: CROP_ID environment variable is not set.")
+		return false
+	}
+
+	agentID = os.Getenv("AGENT_ID")
+	if agentID == "" {
+		zap.L().Warn("Warning: AGENT_ID environment variable is not set.")
+	}
+
+	org = os.Getenv("ORG")
+	if org == "" {
+		zap.L().Warn("Warning: ORG environment variable is not set.")
+		return false
+	}
+
+	githubSecret = os.Getenv("GITHUB_SECRET")
+	if githubSecret == "" {
+		zap.L().Warn("Warning: GITHUB_SECRET environment variable is not set.")
+		return false
+	}
+
+	addressBookSecret = os.Getenv("ADDRESS_BOOK_SECRET")
+	if addressBookSecret == "" {
+		zap.L().Warn("Warning: ADDRESS_BOOK_SECRET environment variable is not set.")
+		return false
+	}
+
+	githubToken = os.Getenv("GITHUB_TOKEN")
+	if githubToken == "" {
+		zap.L().Warn("Warning: GITHUB_TOKEN environment variable is not set.")
+		return false
+	}
+	return true
+}
 
 func GetQyvxGithubAccessToken() error {
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s", cropID, githubSecret)
