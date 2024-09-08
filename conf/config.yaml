@@ -15,17 +15,18 @@ log:
   max_age: 30
   max_backups: 7
 
+# 数据库采用的是matrixone cloud提供的云端数据库,可直接链接(可以当作mysql使用)
 mysql:
-  host: freetier-01.cn-hangzhou.cluster.matrixonecloud.cn
+  host: xxx.cn-hangzhou.cluster.matrixonecloud.cn
   port: 6001
-  user: 01918e17-faae-72bf-8fb8-acf95135efd8#admin#accountadmin
-  password: "Jx20031002"
-  dbname: "mo_qyvx"
+  user: xxx#admin#accountadmin
+  password: "xxx"
+  dbname: "xxx"
   max_open_conns: 200
   max_idle_conns: 50
 
 #redis:
-#  host: nil_redis
+#  host: mo_redis
 #  port: 6379
 #  password: ""
 #  db: 0
