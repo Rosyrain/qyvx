@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/robfig/cron"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"qyvx/logic"
-	snowflake "qyvx/pkg/snowflask"
 	"syscall"
 	"time"
 
@@ -36,23 +36,22 @@ func main() {
 	defer zap.L().Sync()
 	zap.L().Debug("logger init success...")
 
-	// 3. 初始化MySQL连接
+	// 3. 初始化MO连接
 	if err := mysql.Init(settings.Conf.MySQLConfig); err != nil {
 		fmt.Printf("init mysql failed, err:%v\n", err)
 		return
 	}
 	defer mysql.Close()
 
-	//加载雪花算法配置
-	if err := snowflake.Init(settings.Conf.StartTime, settings.Conf.MachineID); err != nil {
-		fmt.Printf("init snowflask failed,err:%#v\n", err)
-	}
-
-	//加载密钥
+	//4.加载密钥
 	if !logic.Init() {
 		fmt.Printf("init secret failed")
 		return
 	}
+
+	// 启动定时任务	目前通过GitHub action实现定时任务的调用
+	go startCronTask(settings.Conf.Whitelist)
+
 	// 5. 注册路由
 	r := routes.SetupRouter(settings.Conf.Mode)
 
@@ -88,4 +87,11 @@ func main() {
 	}
 
 	zap.L().Info("Server exiting")
+}
+
+// 定义一个启动定时任务的函数
+func startCronTask(whitelist string) {
+	c := cron.New()
+	c.AddFunc("0 0 17 * * *", func() { logic.UpdateOncallers(whitelist) })
+	c.Start()
 }

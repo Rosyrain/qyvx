@@ -21,6 +21,7 @@ func SetupRouter(mode string) *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		v1.POST("/invite", controller.InviteHandler)
+		v1.GET("/update_users", controller.UpdateUsersHandler)
 	}
 
 	//v1.Use(middlewares.JWTAuthMiddleware()) //应用JWT认证中间件

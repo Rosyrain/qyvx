@@ -22,73 +22,6 @@ var (
 	wxcpt          = wxbizmsgcrypt.NewWXBizMsgCrypt(token, encodingAeskey, receiverId, wxbizmsgcrypt.XmlType)
 )
 
-func InviteHandler(c *gin.Context) {
-	// 1.参数校验
-	p := new(models.InviteParam)
-	if err := c.ShouldBindJSON(&p); err != nil {
-		//请求参数有误，直接返回响应
-		zap.L().Error("SignUp with invalid param", zap.Error(err))
-		//判断err是不是validator.ValidationErrors类型
-		errs, ok := err.(validator.ValidationErrors)
-		if !ok {
-			ResponseError(c, CodeInvalidParam)
-			return
-		}
-		ResponseErrorWithMsg(c, CodeInvalidParam, removeTopStruct(errs.Translate(trans)))
-		return
-	}
-
-	// 2.逻辑处理
-	// 2.1 发送邀请
-	if err := logic.Invite(p); err != nil {
-		zap.L().Error("logic.Invite(p) failed", zap.Error(err))
-		//	关于发送邀请的错误
-		if errors.Is(err, utools.ErrorUrl) {
-			ResponseError(c, CodeErrorGithubUrl)
-			return
-		}
-		if errors.Is(err, utools.ErrorGithubUser) {
-			ResponseError(c, CodeErrorGithubUrl)
-			return
-		}
-		if errors.Is(err, utools.ErrorGetGithubID) {
-			ResponseError(c, CodeErrorInvite)
-			return
-		}
-		if errors.Is(err, logic.ErrorInvite) {
-			ResponseError(c, CodeErrorInvite)
-			return
-		}
-		ResponseError(c, CodeServerBusy)
-		return
-	}
-	zap.L().Info("logic.Invite(p) success")
-	// 2.2 更新企业微信用户信息
-	if err := logic.UpdateAlias(p); err != nil {
-		zap.L().Error("logic.UpdateAlias(p) failed", zap.Error(err))
-		if errors.Is(err, mysql.ErrorUserNotExist) {
-			ResponseError(c, codeUserExist)
-			return
-		}
-		if errors.Is(err, logic.ErrorRefreshToken) {
-			ResponseErrorWithMsg(c, CoderRefreshToken, "addressBook token")
-		}
-		if errors.Is(err, logic.ErrorAddressAccessToken) {
-			ResponseErrorWithMsg(c, CodeErrorToken, "addressBook token")
-			return
-		}
-		if errors.Is(err, logic.ErrorUpdateAlias) {
-			ResponseError(c, CodeServerBusy)
-			return
-		}
-		ResponseError(c, CodeServerBusy)
-		return
-	}
-
-	// 3.返回响应
-	ResponseSuccess(c, nil)
-}
-
 func HookHandler(c *gin.Context) {
 	reqMsgSign := c.DefaultQuery("msg_signature", "")
 	reqTimestamp := c.DefaultQuery("timestamp", "")
@@ -133,40 +66,19 @@ func HookHandler(c *gin.Context) {
 		return
 	}
 	if !ok {
-		zap.L().Info("don`t need to exec invite task... ...")
+		zap.L().Info("don`t need to execute invite task... ...")
 		ResponseErrorWithMsg(c, CodeServerBusy, "The approval information does not require subsequent operations")
 		return
 	}
 
-	zap.L().Info("exec invite task...")
+	zap.L().Info("start invite task...")
 	// 2.逻辑处理
-	// 2.1 发送邀请
+	// 2.1 判断用户是否存在
+	// 2.2 更新别名
+	// 2.3 发送邀请
 	if err := logic.Invite(inviteParam); err != nil {
 		zap.L().Error("logic.Invite(p) failed", zap.Error(err))
-		//	关于发送邀请的错误
-		if errors.Is(err, utools.ErrorUrl) {
-			ResponseError(c, CodeErrorGithubUrl)
-			return
-		}
-		if errors.Is(err, utools.ErrorGithubUser) {
-			ResponseError(c, CodeErrorGithubUrl)
-			return
-		}
-		if errors.Is(err, utools.ErrorGetGithubID) {
-			ResponseError(c, CodeErrorInvite)
-			return
-		}
-		if errors.Is(err, logic.ErrorInvite) {
-			ResponseError(c, CodeErrorInvite)
-			return
-		}
-		ResponseError(c, CodeServerBusy)
-		return
-	}
-	zap.L().Info("logic.Invite(p) success")
-	// 2.2 更新企业微信用户信息
-	if err := logic.UpdateAlias(inviteParam); err != nil {
-		zap.L().Error("logic.UpdateAlias(p) failed", zap.Error(err))
+		//关于更新别名的错误
 		if errors.Is(err, mysql.ErrorUserNotExist) {
 			ResponseError(c, codeUserExist)
 			return
@@ -178,14 +90,122 @@ func HookHandler(c *gin.Context) {
 			ResponseErrorWithMsg(c, CodeErrorToken, "addressBook token")
 			return
 		}
+		if errors.Is(err, logic.ErrorGetQyvxName) {
+			ResponseError(c, CodeErrorQyvxName)
+			return
+		}
 		if errors.Is(err, logic.ErrorUpdateAlias) {
-			ResponseError(c, CodeServerBusy)
+			ResponseError(c, CodeErrorUpdateAlias)
+			return
+		}
+		//	关于发送邀请的错误
+		if errors.Is(err, utools.ErrorUrl) {
+			ResponseError(c, CodeErrorGithubUrl)
+			return
+		}
+		if errors.Is(err, utools.ErrorGithubUser) {
+			ResponseError(c, CodeErrorGithubUser)
+			return
+		}
+		if errors.Is(err, utools.ErrorGetGithubID) {
+			ResponseError(c, CodeErrorGetID)
+			return
+		}
+		if errors.Is(err, logic.ErrorInvite) {
+			ResponseError(c, CodeErrorInvite)
+			return
+		}
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+	// 响应已经提前返回
+
+}
+
+func InviteHandler(c *gin.Context) {
+	// 1.参数校验
+	p := new(models.InviteParam)
+	if err := c.ShouldBindJSON(&p); err != nil {
+		//请求参数有误，直接返回响应
+		zap.L().Error("SignUp with invalid param", zap.Error(err))
+		//判断err是不是validator.ValidationErrors类型
+		errs, ok := err.(validator.ValidationErrors)
+		if !ok {
+			ResponseError(c, CodeInvalidParam)
+			return
+		}
+		ResponseErrorWithMsg(c, CodeInvalidParam, removeTopStruct(errs.Translate(trans)))
+		return
+	}
+
+	// 2.逻辑处理
+	// 2.1 判断用户是否存在
+	// 2.2 更新别名
+	// 2.3 发送邀请
+	if err := logic.Invite(p); err != nil {
+		zap.L().Error("logic.Invite(p) failed", zap.Error(err))
+		//关于更新别名的错误
+		if errors.Is(err, mysql.ErrorUserNotExist) {
+			ResponseError(c, codeUserExist)
+			return
+		}
+		if errors.Is(err, logic.ErrorRefreshToken) {
+			ResponseErrorWithMsg(c, CoderRefreshToken, "addressBook token")
+		}
+		if errors.Is(err, logic.ErrorAddressAccessToken) {
+			ResponseErrorWithMsg(c, CodeErrorToken, "addressBook token")
+			return
+		}
+		if errors.Is(err, logic.ErrorGetQyvxName) {
+			ResponseError(c, CodeErrorQyvxName)
+			return
+		}
+		if errors.Is(err, logic.ErrorUpdateAlias) {
+			ResponseError(c, CodeErrorUpdateAlias)
+			return
+		}
+		//	关于发送邀请的错误
+		if errors.Is(err, utools.ErrorUrl) {
+			ResponseError(c, CodeErrorGithubUrl)
+			return
+		}
+		if errors.Is(err, utools.ErrorGithubUser) {
+			ResponseError(c, CodeErrorGithubUser)
+			return
+		}
+		if errors.Is(err, utools.ErrorGetGithubID) {
+			ResponseError(c, CodeErrorGetID)
+			return
+		}
+		if errors.Is(err, logic.ErrorInvite) {
+			ResponseError(c, CodeErrorInvite)
 			return
 		}
 		ResponseError(c, CodeServerBusy)
 		return
 	}
 
-	// 响应已经提前返回
+	// 3.返回响应
+	ResponseSuccess(c, nil)
+}
 
+func UpdateUsersHandler(c *gin.Context) {
+	// 1.参数处理
+
+	// 2.业务处理
+	if err := logic.UpdateUsers(); err != nil {
+		zap.L().Error("logic.UpdateUsers failed", zap.Error(err))
+		if errors.Is(err, logic.ErrorRefreshToken) {
+			ResponseErrorWithMsg(c, CoderRefreshToken, "addressBook token")
+		}
+		if errors.Is(err, logic.ErrorAddressAccessToken) {
+			ResponseErrorWithMsg(c, CodeErrorToken, "addressBook token")
+			return
+		}
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+
+	// 3.返回校园
+	ResponseSuccess(c, nil)
 }

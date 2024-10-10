@@ -158,17 +158,10 @@ func CheckQyvxAddressBookAccessToken() error {
 }
 
 // invite 向github账号发送邀请
-func invite(githubID int64) error {
-	url := fmt.Sprintf("https://api.github.com/orgs/%s/invitations", org)
-	data := map[string]interface{}{
-		"invitee_id": githubID,
-		"role":       "direct_member",
-	}
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	_, err = ihttp.Request("POST", url, "application/json", githubToken, bytes.NewReader(jsonData))
+func invite(teamName, githubName string) error {
+	url := fmt.Sprintf("https://api.github.com/orgs/%s/teams/%s/memberships/%s", org, teamName, githubName)
+
+	_, err := ihttp.Request("PUT", url, "application/json", githubToken, nil)
 	if err != nil {
 		return ErrorInvite
 	}
@@ -212,4 +205,80 @@ func getQyvxApproveInfo(spNo string) ([]byte, error) {
 		return nil, err
 	}
 	return body, nil
+}
+
+func getQyvxUsersIDs() ([]string, error) {
+	if err := CheckQyvxAddressBookAccessToken(); err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/user/list_id?access_token=%s", qyvxAddressBookAccessToken)
+	postBody := map[string]interface{}{
+		"cursor": "",
+		"limit":  10000,
+	}
+	jsonData, err := json.Marshal(postBody)
+	if err != nil {
+		return nil, err
+	}
+	body, err := ihttp.Request("POST", url, "application/json", "", bytes.NewReader(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]interface{}, 0)
+	if err = json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+	var userIDs []string
+	deptUserList := data["dept_user"].([]interface{})
+	for _, u := range deptUserList {
+		user := u.(map[string]interface{})
+		userID := user["userid"].(string)
+		userIDs = append(userIDs, userID)
+	}
+	return userIDs, nil
+}
+
+func inviteAndDeleteQyvxUser(addOncallersIds, deleteOncallersIds []string) error {
+	if err := CheckQyvxGithubAccessToken(); err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/appchat/update?access_token=%s", qyvxGithubAccessToken)
+	data := map[string]interface{}{
+		"chatid":        "1",
+		"add_user_list": addOncallersIds,
+		"del_user_list": deleteOncallersIds,
+	}
+	jsondata, err := json.Marshal(data)
+	if err != nil {
+		zap.L().Error("json Marshal failed", zap.Error(err))
+		return err
+	}
+	_, err = ihttp.Request("POST", url, "application/json", "", bytes.NewReader(jsondata))
+	return err
+}
+
+func getqyvxName(qyvx_id string) (name string, err error) {
+	if err := CheckQyvxGithubAccessToken(); err != nil {
+		return "", err
+	}
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=%s&userid=%s", qyvxGithubAccessToken, qyvx_id)
+	body, err := ihttp.Request("GET", url, "", "", nil)
+	if err != nil {
+		return "", err
+	}
+	data := make(map[string]interface{}, 0)
+	if err = json.Unmarshal(body, &data); err != nil {
+		return "", err
+	}
+	errorCode := data["errcode"]
+	if errorCode != float64(0) {
+		return "", ErrorGetQyvxName
+	}
+	name, ok := data["name"].(string)
+	if !ok {
+		return "", ErrorGetQyvxName
+	}
+	return name, err
 }

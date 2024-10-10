@@ -10,4 +10,5 @@ var (
 	ErrorGithubUser         = errors.New("invalid github account")
 	ErrorGetGithubID        = errors.New("get githubID failed")
 	ErrorUpdateAlias        = errors.New("update alias failed")
+	ErrorGetQyvxName        = errors.New("get qyvx name failed")
 )
