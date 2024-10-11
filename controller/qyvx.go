@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	token          = "dPv2RKxhOBdgC1YmxuUmvLVl"
-	receiverId     = "wwf4f0871502d60e9e"
-	encodingAeskey = "DcJwJc2nHfwxIlkfMWbbsdrDcOBRST6SRsTJu2hbCtN"
+	token          = "xxx"
+	receiverId     = "xxx"
+	encodingAeskey = "xxx"
 	wxcpt          = wxbizmsgcrypt.NewWXBizMsgCrypt(token, encodingAeskey, receiverId, wxbizmsgcrypt.XmlType)
 )
 
